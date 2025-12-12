@@ -89,7 +89,7 @@ def mostrarTablaComentarios(comentarios: List[Dict[str, Any]], limite: int = 10)
     for c in comentarios[:limite]:
         datos.append({
             "ID": c.get("id", ""),
-            "Comentario": c.get("comentario", "")[:80] + "...",
+            "Comentario": c.get("comentario", ""),  # 👈 SIN CORTAR
             "Estrés": c.get("stress_level", ""),
             "Emoción": c.get("emotion_label", ""),
             "Departamento": c.get("departamento", ""),
@@ -98,6 +98,7 @@ def mostrarTablaComentarios(comentarios: List[Dict[str, Any]], limite: int = 10)
 
     df = pd.DataFrame(datos)
     st.dataframe(df, use_container_width=True, hide_index=True)
+
 
 
 def crearGraficoBarras(titulo: str, etiquetas: List[str], valores: List[float], color: str = None):

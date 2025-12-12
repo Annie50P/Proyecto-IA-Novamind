@@ -1,28 +1,33 @@
-# api/analizarLote.py
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
-from typing import List, Dict, Any
-import csv
-import io
-
+# backend/api/analizarLote.py
+from fastapi import APIRouter, Depends
 from backend.config.database import get_db
-from backend.ia.iaCore import NLPAnalyzer
-from backend.core.coreServices import guardarAnalisisLote
+from backend.core.coreServices import guardarAnalisis
 
+router = APIRouter(
+    prefix="/analizar",
+    tags=["Análisis"]
+)
 
-router = APIRouter(tags=["Analisis"])
+@router.post("/lote")
+def analizar_lote(data: list, db=Depends(get_db)):
+    procesados = 0
 
-analyzer = NLPAnalyzer()
+    for fila in data:
+        comentario = fila.get("comentario")
+        if not comentario:
+            continue
 
-class LotePayload(BaseModel):
-    datos: List[Dict[str, Any]]
+        meta = {
+            "departamento": fila.get("departamento"),
+            "equipo": fila.get("equipo"),
+            "fecha": fila.get("fecha")
+        }
 
-@router.post("/analizar-lote/")
-def analizarLote(payload: LotePayload, db: Session = Depends(get_db)):
-    try:
-        resultados = analyzer.batch_analyze(payload.datos)
-        guardados = guardarAnalisisLote(db, resultados)
-        return {"status":"ok","procesados": len(resultados), "guardados": guardados}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error analizando lote: {e}")
+        guardarAnalisis(db, comentario, meta)
+        procesados += 1
+
+    return {
+        "success": True,
+        "procesados": procesados,
+        "guardados": procesados
+    }

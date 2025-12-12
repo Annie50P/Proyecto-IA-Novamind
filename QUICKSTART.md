@@ -80,7 +80,7 @@ Para que los empleados dejen comentarios anónimos:
 ```bash
 streamlit run app_publica.py
 ```
-
+ 
 Acceso: http://localhost:8501
 
 ### Opción B: Panel de RRHH (Con Login)
