@@ -11,9 +11,9 @@ class Settings(BaseSettings):
 
     # MySQL creds (usa .env en raíz del repo o variables de entorno)
     mysql_user: str = "root"
-    mysql_password: str = "Patricia05**"
+    mysql_password: str = "Familia27!"
     mysql_host: str = "127.0.0.1"
-    mysql_port: int = 3306
+    mysql_port: int = 3308
     mysql_db: str = "novamind"
 
     # IA models (puedes cambiarlos aquí)
