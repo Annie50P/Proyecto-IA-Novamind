@@ -1,4 +1,6 @@
-# NovaMind - Sistema Inteligente de Bienestar Laboral con Agente Autónomo
+# EmotionHUB- Sistema Inteligente de Bienestar Laboral con Agente Autónomo
+
+
 
 
 **Proyecto para Hackatón - Extensión con Agente Autónomo**
