@@ -218,7 +218,7 @@ def obtenerInsights(
 
 def obtenerEstadisticasInsights() -> Dict[str, Any]:
     """Obtiene estadísticas generales de insights"""
-    url = f"{BASE_URL}/agente/insights/estadisticas/"
+    url = f"{BASE_URL}/agente/stats/"
     response = requests.get(url, timeout=30)
     response.raise_for_status()
     return response.json()

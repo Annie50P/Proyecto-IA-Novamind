@@ -552,7 +552,7 @@ Sistema:
 RRHH:
 - Ve comentario positivo en dashboard general
 - No genera insight adicional
-```
+```v
 
 ### Caso 2: Problema con Liderazgo (Conversación Profunda)
 

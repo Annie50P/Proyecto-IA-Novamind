@@ -44,7 +44,7 @@ def mostrar_mensaje(rol: str, contenido: str, nivel_riesgo: str = None):
 def mostrar_chat_agente():
     """Interfaz principal del chat con el agente"""
 
-    st.title("💬 Agente de Bienestar Laboral")
+    st.title(" Agente de Bienestar Laboral")
     st.markdown("### Conversación confidencial y anónima")
 
     st.info(
@@ -261,7 +261,7 @@ def main():
     """Función principal para ejecutar como página standalone"""
     st.set_page_config(
         page_title="Agente de Bienestar",
-        page_icon="💬",
+        page_icon="",
         layout="centered",
         initial_sidebar_state="collapsed"
     )

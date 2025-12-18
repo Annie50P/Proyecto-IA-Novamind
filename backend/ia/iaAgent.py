@@ -77,72 +77,72 @@ class EstrategiasPreguntas:
     @staticmethod
     def sobrecarga_laboral(contexto: dict) -> List[str]:
         return [
-            "¿Ya intentaste hablar con tu supervisor sobre esta carga de trabajo?",
-            "¿Cuánto tiempo llevas con esta sobrecarga?",
-            "¿Qué tareas específicas te generan más presión?",
-            "¿Te han asignado recursos o apoyo adicional?",
-            "¿Has recibido alguna respuesta de RRHH previamente sobre esto?"
+            "Oye, ¿has podido hablar con tu jefe sobre esto?",
+            "¿Desde cuándo te sientes así con la carga de trabajo?",
+            "¿Qué es lo que más te está pesando ahora mismo?",
+            "¿Te han dado algún tipo de apoyo o ayuda?",
+            "¿Has hablado antes con alguien de RRHH sobre esta situación?"
         ]
 
     @staticmethod
     def liderazgo(contexto: dict) -> List[str]:
         return [
-            "¿Pudiste hablar con tu supervisor sobre lo que está pasando?",
-            "¿Cada cuánto recibes feedback o retroalimentación de tu líder?",
-            "¿Hace cuánto tiempo que esto viene ocurriendo?",
-            "¿Tu supervisor sabe cómo te estás sintiendo con esta situación?",
-            "¿Intentaste reportar esto a Recursos Humanos?",
-            "¿Qué pasa cuando intentas comunicarte con tu supervisor?"
+            "¿Has podido platicar con tu jefe sobre esto?",
+            "¿Tu líder te da feedback seguido o casi no?",
+            "¿Desde cuándo está pasando esto?",
+            "¿Tu jefe sabe cómo te sientes?",
+            "¿Has intentado reportarlo con RRHH?",
+            "Cuando intentas hablar con tu jefe, ¿qué pasa?"
         ]
 
     @staticmethod
     def recursos_insuficientes(contexto: dict) -> List[str]:
         return [
-            "¿Ya solicitaste estos recursos o herramientas?",
-            "¿A quién reportaste esta necesidad?",
-            "¿Recibiste alguna respuesta o seguimiento?",
+            "¿Ya pediste lo que necesitas?",
+            "¿A quién se lo pediste?",
+            "¿Te dijeron algo o te dejaron en visto?",
             "¿Cuánto tiempo llevas esperando?",
-            "¿Esto afecta directamente tu capacidad de trabajar?"
+            "¿Esto te está frenando en tu trabajo?"
         ]
 
     @staticmethod
     def comunicacion(contexto: dict) -> List[str]:
         return [
-            "¿Has intentado resolver esto hablando directamente?",
-            "¿Qué canales de comunicación has usado?",
-            "¿Tu equipo o supervisor está al tanto?",
-            "¿Esto es algo recurrente o puntual?",
-            "¿Has recibido alguna respuesta?"
+            "¿Has intentado hablarlo directo con la persona?",
+            "¿Cómo le has hecho para comunicarte? ¿Email, chat, presencial?",
+            "¿Tu equipo o tu jefe saben de esto?",
+            "¿Es la primera vez que pasa o ya es seguido?",
+            "¿Te han respondido algo?"
         ]
 
     @staticmethod
     def conflictos_internos(contexto: dict) -> List[str]:
         return [
-            "¿Has intentado resolver esto directamente con la otra persona?",
-            "¿Tu supervisor está al tanto de esta situación?",
-            "¿Cuánto tiempo lleva ocurriendo esto?",
-            "¿Afecta tu trabajo diario?",
-            "¿Has solicitado mediación o ayuda de RRHH?"
+            "¿Has intentado hablarlo directamente con esa persona?",
+            "¿Tu jefe sabe que esto está pasando?",
+            "¿Desde cuándo viene este rollo?",
+            "¿Te afecta en tu día a día en el trabajo?",
+            "¿Has pedido ayuda a RRHH o a alguien más?"
         ]
 
     @staticmethod
     def equilibrio_vida_trabajo(contexto: dict) -> List[str]:
         return [
-            "¿Esto es algo reciente o llevas tiempo sintiéndote así?",
-            "¿Has hablado con tu supervisor sobre ajustar horarios?",
-            "¿Qué aspectos específicos te generan más tensión?",
-            "¿Has intentado poner límites o no es posible en tu rol?"
+            "¿Es algo reciente o ya llevas tiempo sintiéndote así?",
+            "¿Has hablado con tu jefe sobre ajustar horarios o algo?",
+            "¿Qué es lo que más te tensiona?",
+            "¿Has intentado poner límites o se complica por tu puesto?"
         ]
 
     @staticmethod
     def generica(contexto: dict) -> List[str]:
         """Preguntas genéricas para casos no categorizados"""
         return [
-            "Cuéntame, ¿ya intentaste hacer algo para resolver esto?",
-            "¿Otras personas de tu equipo están pasando por algo similar?",
-            "¿Hace cuánto tiempo que esto viene ocurriendo?",
-            "¿Qué crees que ayudaría más para mejorar la situación?",
-            "¿Has podido hablar de esto con alguien del equipo o con tu supervisor?"
+            "Oye, ¿ya intentaste hacer algo para resolverlo?",
+            "¿Alguien más de tu equipo está pasando por algo parecido?",
+            "¿Desde cuándo está pasando esto?",
+            "¿Qué crees que te ayudaría más?",
+            "¿Has podido platicarlo con alguien de tu equipo o con tu jefe?"
         ]
 
 
@@ -657,6 +657,26 @@ class AgenteAutonomo:
             respuesta_empleado
         )
 
+        # Si ya no hay más preguntas (retorna None), cerrar conversación
+        if pregunta_siguiente is None:
+            print(f"✅ Cerrando conversación: se agotaron las preguntas")
+            insight = self._generar_insight_final(
+                contexto_conversacion,
+                mensajes_previos,
+                respuesta_empleado,
+                analisis,
+                bloqueos_acumulados
+            )
+
+            return {
+                "accion": "cerrar",
+                "pregunta": None,
+                "analisis": analisis,
+                "bloqueo_detectado": bloqueo if bloqueo["hay_bloqueo"] else None,
+                "nivel_riesgo_actualizado": nivel_riesgo_nuevo,
+                "insight": insight
+            }
+
         return {
             "accion": "profundizar",
             "pregunta": pregunta_siguiente,
@@ -790,7 +810,7 @@ class AgenteAutonomo:
             return preguntas_nuevas[0]
 
         # Si se agotaron las preguntas, hacer pregunta de cierre (solo una vez)
-        pregunta_cierre = "¿Hay algo más que quieras agregar sobre tu situación?"
+        pregunta_cierre = "¿Quieres agregar algo más sobre esto?"
         if pregunta_cierre not in preguntas_usadas:
             return pregunta_cierre
 
@@ -803,15 +823,15 @@ class AgenteAutonomo:
         tipo = bloqueo["tipo"]
 
         if tipo == "liderazgo":
-            return "¿Cuánto tiempo llevas intentando comunicarte sin éxito?"
+            return "¿Cuánto tiempo llevas intentando comunicarte sin que te hagan caso?"
         elif tipo == "recursos":
-            return "¿Cuándo te prometieron estos recursos y cuánto tiempo llevas esperando?"
+            return "¿Cuándo te prometieron eso y cuánto llevas esperando?"
         elif tipo == "proceso":
-            return "¿Qué pasos has seguido hasta ahora y dónde se atasca el proceso?"
+            return "¿Qué has hecho hasta ahora y en dónde se está trabando todo?"
         elif tipo == "cultural":
-            return "¿Cuántas personas de tu equipo experimentan esto mismo?"
+            return "¿Cuántas personas de tu equipo están pasando por lo mismo?"
         else:
-            return "¿Qué has intentado hacer para resolver esto?"
+            return "¿Qué has intentado para arreglarlo?"
 
     def _actualizar_nivel_riesgo(
         self,

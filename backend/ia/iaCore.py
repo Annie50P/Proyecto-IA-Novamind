@@ -1,21 +1,23 @@
-# ia/iaCore.py
 from __future__ import annotations
-from typing import Dict, Any, List, Iterable, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 import logging
 
 from transformers import pipeline, Pipeline
 from backend.ia.configIA import IAConfig
 from backend.ia.preProcesamiento import limpiarTextoBasico
 
+# ============================================================
+# 馃敡 LOGGING
+# ============================================================
 logger = logging.getLogger("NLPAnalyzer")
 if not logger.handlers:
     import sys
-    h = logging.StreamHandler(sys.stdout)
-    logger.addHandler(h)
+    handler = logging.StreamHandler(sys.stdout)
+    logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
 # ============================================================
-# 🔵 MAPEOS A ESPAÑOL
+# 馃 EMOCIONES BASE (NUNCA "OTRO")
 # ============================================================
 
 EMO_MAP = {
@@ -25,85 +27,77 @@ EMO_MAP = {
     "sadness": "tristeza",
     "anger": "enojo",
     "fear": "miedo",
-    "disgust": "asco",
+    "disgust": "enojo",
     "surprise": "sorpresa",
-    "others": "otro",
-    "other": "otro"
+    "neutral": "neutral"
 }
 
-def _map_emotion_es(label: str) -> str:
-    label = (label or "").lower().strip()
-    return EMO_MAP.get(label, "indefinido")
+EMOCIONES_VALIDAS = {
+    "alegría", "satisfacción", "motivación", "calma",
+    "tristeza", "frustración", "agotamiento",
+    "ansiedad", "enojo", "miedo", "neutral"
+}
 
+# ============================================================
+# 馃О HELPERS
+# ============================================================
 
 def _trim(text: str, n: int) -> str:
-    text = (text or "").strip()
     return text if len(text) <= n else text[:n].rsplit(" ", 1)[0]
-
 
 def _meaningful(text: str) -> bool:
     return isinstance(text, str) and len(text.strip()) >= 3
 
-
 # ============================================================
-# 🔵 REGISTRO DE MODELOS
+# 馃 MODELOS
 # ============================================================
 
 class ModelRegistry:
     def __init__(self, cfg: IAConfig):
         self.cfg = cfg
-        self._sentiment_pipe: Optional[Pipeline] = None
-        self._emotion_pipe: Optional[Pipeline] = None
-        self._zeroshot_pipe: Optional[Pipeline] = None
-        self._summarizer_pipe: Optional[Pipeline] = None
+        self._sentiment: Optional[Pipeline] = None
+        self._emotion: Optional[Pipeline] = None
+        self._zeroshot: Optional[Pipeline] = None
+        self._summarizer: Optional[Pipeline] = None
 
-    def sentiment(self) -> Pipeline:
-        if self._sentiment_pipe is None:
-            logger.info("Cargando modelo de Sentiment...")
-            self._sentiment_pipe = pipeline(
+    def sentiment(self):
+        if not self._sentiment:
+            self._sentiment = pipeline(
                 "sentiment-analysis",
                 model=self.cfg.sentiment_model,
-                device=-1,
                 truncation=True
             )
-        return self._sentiment_pipe
+        return self._sentiment
 
-    def emotion(self) -> Pipeline:
-        if self._emotion_pipe is None:
-            logger.info("Cargando modelo de Emotion...")
-            self._emotion_pipe = pipeline(
+    def emotion(self):
+        if not self._emotion:
+            self._emotion = pipeline(
                 "text-classification",
                 model=self.cfg.emotion_model,
-                device=-1,
                 truncation=True
             )
-        return self._emotion_pipe
+        return self._emotion
 
-    def zeroshot(self) -> Pipeline:
-        if self._zeroshot_pipe is None:
-            logger.info("Cargando modelo Zero-shot...")
-            self._zeroshot_pipe = pipeline(
+    def zeroshot(self):
+        if not self._zeroshot:
+            self._zeroshot = pipeline(
                 "zero-shot-classification",
                 model=self.cfg.zeroshot_model,
-                device=-1,
                 truncation=True
             )
-        return self._zeroshot_pipe
+        return self._zeroshot
 
-    def summarizer(self) -> Pipeline:
-        if self._summarizer_pipe is None:
-            logger.info("Cargando modelo Summarization...")
-            self._summarizer_pipe = pipeline(
+    def summarizer(self):
+        if not self._summarizer:
+            self._summarizer = pipeline(
                 "summarization",
                 model=self.cfg.summarizer_model,
-                device=-1,
                 truncation=True
             )
-        return self._summarizer_pipe
-
+        return self._summarizer
 
 # ============================================================
-# 🔵 ANALIZADOR PRINCIPAL
+# 馃敺 ANALIZADOR PRINCIPAL
 # ============================================================
 
 class NLPAnalyzer:
@@ -111,181 +105,137 @@ class NLPAnalyzer:
         self.cfg = cfg or IAConfig()
         self.m = ModelRegistry(self.cfg)
 
-    # ---------------------------
-    # 🔶 EMOCIÓN
-    # ---------------------------
+    # --------------------------------------------------------
+    # 馃 EMOCI脫N FINAL (NUNCA "OTRO")
+    # --------------------------------------------------------
+    def _resolver_emocion_final(
+        self,
+        emocion_modelo: str,
+        sentimiento: str,
+        nivel_estres: str,
+        texto: str
+    ) -> str:
+
+        emocion_modelo = emocion_modelo.lower()
+
+        if emocion_modelo in EMO_MAP:
+            base = EMO_MAP[emocion_modelo]
+        else:
+            base = "neutral"
+
+        texto = texto.lower()
+
+        if sentimiento == "negative":
+            if nivel_estres == "alto":
+                return "agotamiento" if "agot" in texto else "frustración"
+            if nivel_estres == "medio":
+                return "ansiedad"
+            return "tristeza"
+
+        if sentimiento == "neutral":
+            if nivel_estres == "alto":
+                return "ansiedad"
+            return "neutral"
+
+        if sentimiento == "positive":
+            if "orgullo" in texto or "logro" in texto:
+                return "satisfacción"
+            if "motiva" in texto:
+                return "motivación"
+            return "alegría"
+
+        return "neutral"
+
+    # --------------------------------------------------------
+    # 馃攳 EMOCI脫N
+    # --------------------------------------------------------
     def _emotion(self, text: str) -> Tuple[str, float]:
-        if not _meaningful(text):
-            return ("indefinido", 0.0)
+        out = self.m.emotion()(_trim(text, self.cfg.max_len_models))
+        pred = out[0]
+        return pred["label"], float(pred["score"])
 
-        try:
-            out = self.m.emotion()(_trim(text, self.cfg.max_len_models))
+    # --------------------------------------------------------
+    # 馃敟 ESTR脡S
+    # --------------------------------------------------------
+    def _stress(self, text: str):
+        out = self.m.sentiment()(_trim(text, self.cfg.max_len_models))
+        label = out[0]["label"].upper()
+        score = out[0]["score"]
 
-            if isinstance(out, list) and len(out):
-                pred = out[0]
-                raw = str(pred.get("label", "")).lower().strip()
-                score = float(pred.get("score", 0.0))
-                mapped = _map_emotion_es(raw)
-                return mapped, score
+        if "NEG" in label:
+            return "alto", {"negative": score}
+        if "POS" in label:
+            return "bajo", {"positive": score}
+        return "medio", {"neutral": score}
 
-            return ("indefinido", 0.0)
+    # --------------------------------------------------------
+    # 馃 CATEGOR脥AS
+    # --------------------------------------------------------
+    def _categories(self, text: str):
+        out = self.m.zeroshot()(
+            _trim(text, self.cfg.max_len_models),
+            self.cfg.categorias,
+            multi_label=True
+        )
+        return [
+            {"label": l, "score": float(s)}
+            for l, s in zip(out["labels"], out["scores"])
+            if s >= self.cfg.min_score_categoria
+        ]
 
-        except Exception:
-            return ("indefinido", 0.0)
-
-    # ---------------------------
-    # 🔶 ESTRÉS
-    # ---------------------------
-    def _stress(self, text: str) -> Tuple[str, Dict[str,float]]:
-        if not _meaningful(text):
-            return ("bajo", {"positive":0.0, "neutral":1.0, "negative":0.0})
-
-        try:
-            out = self.m.sentiment()(_trim(text, self.cfg.max_len_models))
-
-            if not out:
-                return ("medio", {"positive":0.0, "neutral":1.0, "negative":0.0})
-
-            label = out[0]["label"].upper()
-            score = float(out[0]["score"])
-
-            if "NEG" in label:
-                sent = "negative"
-            elif "POS" in label:
-                sent = "positive"
-            else:
-                sent = "neutral"
-
-            dist = {"positive":0.0, "neutral":0.0, "negative":0.0}
-            dist[sent] = score
-
-            level = self.cfg.stress_map.get(sent, "medio")
-            return level, dist
-
-        except Exception:
-            return ("medio", {"positive":0.0, "neutral":1.0, "negative":0.0})
-
-    # ---------------------------
-    # 🔶 CATEGORÍAS
-    # ---------------------------
-    def _categories(self, text: str, top_k: int = 3):
-        if not _meaningful(text):
-            return []
-
-        try:
-            out = self.m.zeroshot()(
-                _trim(text, self.cfg.max_len_models),
-                self.cfg.categorias,
-                multi_label=True
-            )
-
-            pairs = [(lab, float(scr)) for lab, scr in zip(out["labels"], out["scores"])
-                     if scr >= self.cfg.min_score_categoria]
-
-            pairs.sort(key=lambda x: x[1], reverse=True)
-
-            return pairs[:top_k]
-
-        except Exception:
-            return []
-
-    # ---------------------------
-    # 🔶 RESUMEN
-    # ---------------------------
+    # --------------------------------------------------------
+    # 馃摑 RESUMEN
+    # --------------------------------------------------------
     def _summary(self, text: str) -> str:
-        if not _meaningful(text):
-            return ""
-        if len(text) <= 140:
+        if len(text) < 120:
             return text
+        out = self.m.summarizer()(
+            _trim(text, self.cfg.max_len_summary),
+            max_length=80,
+            min_length=25,
+            do_sample=False
+        )
+        return out[0]["summary_text"]
 
-        try:
-            out = self.m.summarizer()(
-                _trim(text, self.cfg.max_len_summary),
-                max_length=80,
-                min_length=25,
-                do_sample=False
-            )
-            return out[0]["summary_text"].strip()
 
-        except Exception:
-            return text[:160]
 
-    # ============================================================
-    # 🔷 API PRINCIPAL
-    # ============================================================
+    # ========================================================
+    # 馃殌 API PRINCIPAL
+    # ========================================================
     def analyze_comment(self, text: str, meta: dict | None = None) -> Dict[str, Any]:
         meta = meta or {}
         txt = limpiarTextoBasico(text)
 
-        if not _meaningful(txt):
-            return {
-                "emotion": {"label": "indefinido", "score": 0.0},
-                "stress": {"level": "bajo", "sentiment_dist": {"positive": 0, "neutral": 1, "negative": 0}},
-                "categories": [],
-                "summary": "",
-                "suggestion": "Comentario no informativo.",
-                "meta": meta
-            }
-
-        emo_label, emo_score = self._emotion(txt)
+        emo_raw, emo_score = self._emotion(txt)
         stress_level, dist = self._stress(txt)
-        cats = self._categories(txt)
-        summary = self._summary(txt)
+
+        sentimiento = (
+            "negative" if stress_level == "alto"
+            else "positive" if stress_level == "bajo"
+            else "neutral"
+        )
+
+        emocion_final = self._resolver_emocion_final(
+            emo_raw, sentimiento, stress_level, txt
+        )
 
         return {
-            "emotion": {"label": emo_label, "score": float(emo_score)},
+            "emotion": {"label": emocion_final, "score": emo_score},
             "stress": {"level": stress_level, "sentiment_dist": dist},
-            "categories": [{"label": c, "score": s} for c, s in cats],
-            "summary": summary,
-            "suggestion": self._generate_suggestion(stress_level, emo_label, [c for c, _ in cats], txt),
+            "categories": self._categories(txt),
+            "summary": self._summary(txt),
+            "suggestion": self._generate_suggestion(stress_level, emocion_final, txt),
             "meta": meta
         }
 
-    # ============================================================
-    # 🔷 GENERADOR DE SUGERENCIAS
-    # ============================================================
-    def _generate_suggestion(self, stress_level: str, emotion: str, categories: List[str], text: str) -> str:
-        text = text.lower()
-
-        # Keywords
-        carga = any(w in text for w in ["carga", "presión", "estresado", "mucho trabajo", "agotado", "plazos"])
-        recursos = any(w in text for w in ["recursos", "herramientas", "sistema", "equipo", "materiales"])
-        jefe = any(w in text for w in ["jefe", "supervisor", "líder", "manager", "gerente"])
-        comunicacion = "comunicación" in text
-        conflicto = any(w in text for w in ["conflicto", "pelea", "problema", "discusión"])
-        tiempo = any(w in text for w in ["tiempo", "horas", "horario"])
-        
-        # --- ALTO ESTRÉS ---
-        if stress_level == "alto":
-            if carga or "sobrecarga laboral" in categories:
-                return "Se recomienda una reunión inmediata para revisar la carga laboral, redistribuir tareas y ajustar plazos."
-            if recursos or "recursos insuficientes" in categories:
-                return "Revisar disponibilidad de herramientas o personal. Evaluar apoyo temporal o reasignación de recursos."
-            if jefe:
-                return "Sugerencia: reunión con el supervisor para revisar expectativas y mejorar comunicación."
-            if conflicto:
-                return "Se recomienda una intervención de RRHH para resolver conflictos internos."
-            if emotion in ["miedo", "tristeza"]:
-                return "Se sugiere acompañamiento emocional y seguimiento cercano del caso."
-            return "Plan de acción urgente: reunión 1:1, revisión de causas de estrés y seguimiento semanal."
-
-        # --- ESTRÉS MEDIO ---
-        if stress_level == "medio":
-            if comunicacion:
-                return "Mejorar canales de comunicación. Establecer reuniones periódicas para evitar malentendidos."
-            if tiempo:
-                return "Revisar distribución del tiempo y prioridades. Posible capacitación en gestión del tiempo."
-            if recursos:
-                return "Analizar si existen recursos suficientes para realizar el trabajo adecuadamente."
-            return "Monitoreo recomendado para evitar escalamiento a alto estrés."
-
-        # --- ESTRÉS BAJO ---
-        if stress_level == "bajo":
-            if emotion in ["alegría", "sorpresa"]:
-                return "El empleado muestra señales positivas. Reforzar prácticas actuales."
-            if "motivación" in categories:
-                return "El empleado está motivado. Considerar nuevos retos o proyectos de crecimiento."
-            return "Situación estable. Mantener comunicación abierta."
-
-        return "Se recomienda un seguimiento continuo para promover bienestar y comunicación abierta."
-
+    # --------------------------------------------------------
+    # 馃挕 SUGERENCIAS
+    # --------------------------------------------------------
+    def _generate_suggestion(self, stress: str, emotion: str, text: str) -> str:
+        if stress == "alto":
+            return "Se recomienda intervención inmediata de RRHH y revisión de carga laboral."
+        if stress == "medio":
+            return "Monitorear el caso y mejorar comunicación con el equipo."
+        if emotion in ["alegría", "motivación"]:
+            return "Reforzar prácticas positivas y reconocer el desempleo."
+        return "Seguimiento general recomendado."

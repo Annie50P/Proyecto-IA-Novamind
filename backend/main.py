@@ -12,6 +12,7 @@ from backend.api.alertasAutomaticas import router as alertasRouter
 from backend.api.estadisticas import router as estadisticasRouter
 from backend.api.auth import router as authRouter
 from backend.api.agente import router as agenteRouter
+from backend.api.agente_estadisticas_simple import router_stats as statsRouter
 
 # Crear tablas al iniciar
 Base.metadata.create_all(bind=engine)
@@ -33,6 +34,7 @@ app.include_router(historicosRouter)
 app.include_router(alertasRouter)
 app.include_router(estadisticasRouter)
 app.include_router(agenteRouter)
+app.include_router(statsRouter)
 
 @app.get("/")
 def root():

@@ -12,17 +12,23 @@ from pages.chatAgente import mostrar_chat_agente
 
 st.set_page_config(
     page_title="Sistema de Bienestar Laboral",
-    page_icon="💬",
+    page_icon="",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
-
+st.markdown("""
+    <style>
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+""", unsafe_allow_html=True)
 def main():
-    st.title("💬 Sistema de Bienestar Laboral")
+    st.title(" Sistema de Bienestar Laboral")
     st.markdown("### Elige cómo quieres compartir tu opinión")
 
     # Tabs para elegir entre formulario y chat
-    tab1, tab2 = st.tabs(["📝 Comentario rápido", "💬 Conversación con el agente"])
+    tab1, tab2 = st.tabs([" Comentario rápido", " Conversación con el agente"])
 
     with tab1:
         mostrar_formulario_tradicional()

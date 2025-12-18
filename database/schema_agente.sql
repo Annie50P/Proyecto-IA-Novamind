@@ -274,42 +274,6 @@ CREATE INDEX idx_conv_riesgo_estado
 ON conversaciones_agente(nivel_riesgo_actual, estado);
 
 
--- ============================================================
--- DATOS DE EJEMPLO (OPCIONAL - PARA TESTING)
--- ============================================================
-
--- Ejemplo de conversación con insight de bloqueo organizacional
-/*
-INSERT INTO conversaciones_agente
-(mensaje_inicial, analisis_inicial, departamento, equipo, categoria_principal,
- nivel_riesgo_inicial, nivel_riesgo_actual, estado, razon_seguimiento)
-VALUES
-('Me siento muy estresado con la carga de trabajo',
- '{"emotion": {"label": "tristeza", "score": 0.85}, "stress": {"level": "alto"}}',
- 'Ventas', 'Turno A', 'sobrecarga laboral', 'alto', 'critico', 'cerrada',
- 'Estrés alto detectado - requiere seguimiento');
-
--- Mensajes de la conversación
-INSERT INTO mensajes_agente (conversacion_id, rol, contenido, created_at)
-VALUES
-(1, 'agente', '¿Ya intentaste hablar con tu supervisor sobre esta carga de trabajo?', NOW()),
-(1, 'empleado', 'Sí, pero nunca tiene tiempo para reunirse', NOW()),
-(1, 'agente', '¿Cuánto tiempo llevas intentando reunirte sin éxito?', NOW()),
-(1, 'empleado', 'Llevo 2 meses intentando', NOW());
-
--- Insight generado
-INSERT INTO insights_agente
-(conversacion_id, tipo, categoria, titulo, descripcion, contexto_completo,
- recomendacion_rrhh, severidad, departamento, equipo, estado)
-VALUES
-(1, 'bloqueo_organizacional', 'sobrecarga laboral',
- 'Bloqueo de liderazgo - Supervisor no accesible',
- 'Empleado de Ventas (Turno A) reporta que su supervisor no está disponible para reuniones por 2 meses',
- '1. [Agente] ¿Ya intentaste hablar con tu supervisor? 2. [Empleado] Sí, pero nunca tiene tiempo...',
- 'Intervención inmediata: reunión con el supervisor del área',
- 'alta', 'Ventas', 'Turno A', 'nuevo');
-*/
-
 
 -- ============================================================
 -- VERIFICACIÓN DE INSTALACIÓN

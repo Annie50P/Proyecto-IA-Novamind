@@ -21,8 +21,16 @@ from backend.core.coreModels import ConversacionAgente, MensajeAgente, InsightAg
 router = APIRouter(tags=["Agente"])
 
 # Instancias globales
-nlp_analyzer = NLPAnalyzer()
-agente = AgenteAutonomo(nlp_analyzer)
+try:
+    nlp_analyzer = NLPAnalyzer()
+    agente = AgenteAutonomo(nlp_analyzer)
+    print("[OK] Agente autonomo inicializado correctamente")
+except Exception as e:
+    print(f"[ERROR] Al inicializar agente: {str(e)}")
+    import traceback
+    print(traceback.format_exc())
+    nlp_analyzer = None
+    agente = None
 
 
 # ============================================================
@@ -51,6 +59,31 @@ class ActualizarInsightPayload(BaseModel):
 # ============================================================
 # ENDPOINTS
 # ============================================================
+
+@router.get("/agente/health/")
+def health_check():
+    """Health check del agente"""
+    return {
+        "status": "ok",
+        "agente_loaded": agente is not None,
+        "nlp_analyzer_loaded": nlp_analyzer is not None
+    }
+
+
+@router.get("/agente/insights/estadisticas/simple/")
+def estadisticas_insights_simple(db: Session = Depends(get_db)):
+    """Endpoint de prueba ultra simple para diagnosticar"""
+    try:
+        print("[DEBUG] Endpoint simple llamado")
+        count = db.query(InsightAgente).count()
+        print(f"[DEBUG] Count exitoso: {count}")
+        return {"total": count, "status": "ok"}
+    except Exception as e:
+        print(f"[DEBUG ERROR] {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {"total": 0, "status": "error", "message": str(e)}
+
 
 @router.post("/agente/iniciar/")
 def iniciar_conversacion(payload: IniciarConversacionPayload, db: Session = Depends(get_db)):
@@ -113,7 +146,7 @@ def iniciar_conversacion(payload: IniciarConversacionPayload, db: Session = Depe
         }
 
     except Exception as e:
-        print(f"❌ ERROR EN /agente/iniciar/: {str(e)}")
+        print(f"[ERROR] EN /agente/iniciar/: {str(e)}")
         import traceback
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
@@ -192,6 +225,9 @@ def responder_conversacion(payload: ResponderPayload, db: Session = Depends(get_
             mensajes_dict
         )
 
+        # Actualizar el mensaje del empleado con el análisis NLP
+        mensaje_empleado.analisis = decision.get("analisis")
+
         # Actualizar nivel de riesgo
         conversacion.nivel_riesgo_actual = decision["nivel_riesgo_actualizado"]
 
@@ -213,7 +249,7 @@ def responder_conversacion(payload: ResponderPayload, db: Session = Depends(get_
 
             # Si se generó un insight, guardarlo
             if decision.get("insight"):
-                print(f"💡 Guardando insight generado: {decision['insight']['tipo']}")
+                print(f"[INSIGHT] Guardando insight generado: {decision['insight']['tipo']}")
                 insight_data = decision["insight"]
                 insight = InsightAgente(
                     conversacion_id=conversacion_id,
@@ -231,7 +267,7 @@ def responder_conversacion(payload: ResponderPayload, db: Session = Depends(get_
                 )
                 db.add(insight)
             else:
-                print(f"⚠️  No se generó insight para esta conversación")
+                print(f"[WARN]  No se generó insight para esta conversación")
 
         db.commit()
 
@@ -246,7 +282,7 @@ def responder_conversacion(payload: ResponderPayload, db: Session = Depends(get_
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ ERROR EN /agente/responder/: {str(e)}")
+        print(f"[ERROR] ERROR EN /agente/responder/: {str(e)}")
         import traceback
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
@@ -322,7 +358,7 @@ def obtener_conversacion(conversacion_id: int, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ ERROR EN /agente/conversacion/: {str(e)}")
+        print(f"[ERROR] ERROR EN /agente/conversacion/: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -389,76 +425,80 @@ def obtener_insights(
         }
 
     except Exception as e:
-        print(f"❌ ERROR EN /agente/insights/: {str(e)}")
+        print(f"[ERROR] ERROR EN /agente/insights/: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/agente/insights/estadisticas/")
 def estadisticas_insights(db: Session = Depends(get_db)):
-    """
-    Obtiene estadísticas generales de insights
+    """Obtiene estadísticas generales de insights"""
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
 
-    Returns:
-        {
-            "total": int,
-            "por_tipo": {...},
-            "por_severidad": {...},
-            "por_estado": {...},
-            "por_departamento": {...}
-        }
-    """
+    logger.info("=" * 60)
+    logger.info("[STATS] ENDPOINT LLAMADO")
+    logger.info("=" * 60)
+
+    resultado_default = {
+        "total": 0,
+        "por_tipo": {},
+        "por_severidad": {},
+        "por_estado": {},
+        "por_departamento": {}
+    }
+
     try:
+        # Contar total
         total = db.query(InsightAgente).count()
+        logger.info(f"Total insights: {total}")
+
+        if total == 0:
+            logger.info("No hay insights, retornando vacio")
+            return resultado_default
+
+        resultado = {
+            "total": total,
+            "por_tipo": {},
+            "por_severidad": {},
+            "por_estado": {},
+            "por_departamento": {}
+        }
 
         # Por tipo
-        por_tipo = {}
-        tipos = db.query(
-            InsightAgente.tipo,
-            func.count(InsightAgente.id)
-        ).group_by(InsightAgente.tipo).all()
+        tipos = db.query(InsightAgente.tipo, func.count(InsightAgente.id)).group_by(InsightAgente.tipo).all()
         for tipo, count in tipos:
-            por_tipo[tipo] = count
+            if tipo:
+                resultado["por_tipo"][tipo] = count
 
         # Por severidad
-        por_severidad = {}
-        severidades = db.query(
-            InsightAgente.severidad,
-            func.count(InsightAgente.id)
-        ).group_by(InsightAgente.severidad).all()
+        severidades = db.query(InsightAgente.severidad, func.count(InsightAgente.id)).group_by(InsightAgente.severidad).all()
         for sev, count in severidades:
-            por_severidad[sev] = count
+            if sev:
+                resultado["por_severidad"][sev] = count
 
         # Por estado
-        por_estado = {}
-        estados = db.query(
-            InsightAgente.estado,
-            func.count(InsightAgente.id)
-        ).group_by(InsightAgente.estado).all()
+        estados = db.query(InsightAgente.estado, func.count(InsightAgente.id)).group_by(InsightAgente.estado).all()
         for est, count in estados:
-            por_estado[est] = count
+            if est:
+                resultado["por_estado"][est] = count
 
         # Por departamento
-        por_departamento = {}
-        departamentos = db.query(
-            InsightAgente.departamento,
-            func.count(InsightAgente.id)
-        ).filter(InsightAgente.departamento.isnot(None)).group_by(
-            InsightAgente.departamento
-        ).all()
+        departamentos = db.query(InsightAgente.departamento, func.count(InsightAgente.id)).filter(
+            InsightAgente.departamento.isnot(None)
+        ).group_by(InsightAgente.departamento).all()
         for dept, count in departamentos:
-            por_departamento[dept] = count
+            if dept:
+                resultado["por_departamento"][dept] = count
 
-        return {
-            "total": total,
-            "por_tipo": por_tipo,
-            "por_severidad": por_severidad,
-            "por_estado": por_estado,
-            "por_departamento": por_departamento
-        }
+        logger.info(f"Resultado: {resultado}")
+        return resultado
 
     except Exception as e:
-        print(f"❌ ERROR EN /agente/insights/estadisticas/: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"ERROR: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return resultado_default
 
 
 @router.patch("/agente/insights/{insight_id}/")
@@ -510,7 +550,7 @@ def actualizar_insight(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ ERROR EN /agente/insights/{insight_id}/: {str(e)}")
+        print(f"[ERROR] ERROR EN /agente/insights/{insight_id}/: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -558,5 +598,5 @@ def listar_conversaciones(
         }
 
     except Exception as e:
-        print(f"❌ ERROR EN /agente/conversaciones/: {str(e)}")
+        print(f"[ERROR] ERROR EN /agente/conversaciones/: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
