@@ -1,7 +1,15 @@
 # NovaMind - Sistema Inteligente de Bienestar Laboral con Agente Autónomo
 
 
-** Proyecto para Hackatón - Extensión con Agente Autónomo**
+**Proyecto para Hackatón - Extensión con Agente Autónomo**
+
+## Integrantes:
+
+**Omar Jaramillo**
+**Ana Patricia Aparicio**
+**Daniella De Leon**
+
+
 
 
 ---
