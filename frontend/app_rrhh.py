@@ -66,6 +66,7 @@ def mostrarPanelRRHH():
     paginas = {
         "Dashboard": "dashboard",
         "Análisis Individual": "individual",
+        "Insights del Agente": "insights",
         "Análisis CSV": "csv",
         "Alertas": "alertas",
         "Configuración": "config"
@@ -88,6 +89,9 @@ def mostrarPanelRRHH():
     elif seleccion == "Análisis Individual":
         import pages.analisisIndividual as individual
         individual.mostrarPaginaIndividual()
+    elif seleccion == "Insights del Agente":
+        import pages.insightsAgente as insights
+        insights.mostrar_pagina_insights()
     elif seleccion == "Análisis CSV":
         import pages.analisisCSV as csv_page
         csv_page.mostrarPaginaCSV()

@@ -40,3 +40,86 @@ class UsuarioRRHH(Base):
     activo: Mapped[bool] = mapped_column(Integer, default=True)
     created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_login: Mapped[str] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+# ============================================================
+# MODELOS DEL AGENTE AUTÓNOMO
+# ============================================================
+
+class ConversacionAgente(Base):
+    """Modelo para conversaciones del agente autónomo"""
+    __tablename__ = "conversaciones_agente"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    mensaje_inicial: Mapped[str] = mapped_column(Text, nullable=False)
+    analisis_inicial: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    departamento: Mapped[str] = mapped_column(String(80), nullable=True, index=True)
+    equipo: Mapped[str] = mapped_column(String(80), nullable=True, index=True)
+    categoria_principal: Mapped[str] = mapped_column(String(100), nullable=True, index=True)
+
+    nivel_riesgo_inicial: Mapped[str] = mapped_column(String(32), nullable=False, default="medio")
+    nivel_riesgo_actual: Mapped[str] = mapped_column(String(32), nullable=False, default="medio", index=True)
+
+    estado: Mapped[str] = mapped_column(String(32), nullable=False, default="activa", index=True)
+    razon_seguimiento: Mapped[str] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    updated_at: Mapped[str] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        index=True
+    )
+
+
+class MensajeAgente(Base):
+    """Modelo para mensajes individuales de conversaciones del agente"""
+    __tablename__ = "mensajes_agente"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    conversacion_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+
+    rol: Mapped[str] = mapped_column(String(32), nullable=False, index=True)  # 'empleado' o 'agente'
+    contenido: Mapped[str] = mapped_column(Text, nullable=False)
+
+    analisis: Mapped[dict] = mapped_column(JSON, nullable=True)  # Solo para mensajes de empleado
+    meta_info: Mapped[dict] = mapped_column(JSON, nullable=True)  # Información adicional del mensaje
+
+    created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class InsightAgente(Base):
+    """Modelo para insights generados por el agente para RRHH"""
+    __tablename__ = "insights_agente"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    conversacion_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+
+    tipo: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    categoria: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+
+    titulo: Mapped[str] = mapped_column(String(255), nullable=False)
+    descripcion: Mapped[str] = mapped_column(Text, nullable=False)
+    contexto_completo: Mapped[str] = mapped_column(Text, nullable=False)
+    recomendacion_rrhh: Mapped[str] = mapped_column(Text, nullable=False)
+
+    evidencias: Mapped[dict] = mapped_column(JSON, nullable=True)
+
+    severidad: Mapped[str] = mapped_column(String(32), nullable=False, default="media", index=True)
+
+    departamento: Mapped[str] = mapped_column(String(80), nullable=True, index=True)
+    equipo: Mapped[str] = mapped_column(String(80), nullable=True, index=True)
+
+    estado: Mapped[str] = mapped_column(String(32), nullable=False, default="nuevo", index=True)
+    revisado_por: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
+    fecha_revision: Mapped[str] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    notas_rrhh: Mapped[str] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    updated_at: Mapped[str] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        index=True
+    )

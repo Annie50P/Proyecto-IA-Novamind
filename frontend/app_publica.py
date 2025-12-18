@@ -8,16 +8,31 @@ if str(frontend_path) not in sys.path:
     sys.path.insert(0, str(frontend_path))
 
 from utils.callBackend import analizarComentarioIndividual, verificarConexion
+from pages.chatAgente import mostrar_chat_agente
 
 st.set_page_config(
-    page_title="Comentarios de Empleados",
-    page_icon="",
+    page_title="Sistema de Bienestar Laboral",
+    page_icon="💬",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 def main():
-    st.title(" Sistema de Comentarios")
+    st.title("💬 Sistema de Bienestar Laboral")
+    st.markdown("### Elige cómo quieres compartir tu opinión")
+
+    # Tabs para elegir entre formulario y chat
+    tab1, tab2 = st.tabs(["📝 Comentario rápido", "💬 Conversación con el agente"])
+
+    with tab1:
+        mostrar_formulario_tradicional()
+
+    with tab2:
+        mostrar_chat_agente()
+
+
+def mostrar_formulario_tradicional():
+    """Muestra el formulario tradicional de comentarios"""
     st.markdown("### Comparte tu opinión de forma anónima")
 
     st.info("Tu comentario será analizado de forma confidencial por el departamento de Recursos Humanos para mejorar el ambiente laboral.")
