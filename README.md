@@ -18,7 +18,7 @@
 
 ## Resumen Ejecutivo
 
-**NovaMind** es un sistema de análisis de clima organizacional basado en IA que combina:
+**EmotionHUB** es un sistema de análisis de clima organizacional basado en IA que combina:
 
 1. **Sistema base (YA implementado):** Análisis NLP avanzado de comentarios de empleados con detección de emociones, estrés y categorización automática.
 
@@ -36,7 +36,7 @@ Las empresas enfrentan problemas de clima laboral, estrés y rotación de person
 - Chatbots genéricos: consejos de autoayuda que no resuelven problemas organizacionales
 -  Reuniones 1:1: sesgadas por presencia de liderazgo
 
-### Solución NovaMind
+### Solución EmotionHUB
  -Análisis automático de sentimiento y estrés con IA
  -Confidencialidad y anonimato total
  -**Agente autónomo que detecta bloqueos organizacionales a través de conversaciones profundas**
@@ -285,9 +285,9 @@ Recomendación: Intervención inmediata de RRHH + reunión con supervisor del á
 
 ##  Valor Diferencial
 
-### Comparación: Sistema Tradicional vs. NovaMind con Agente
+### Comparación: Sistema Tradicional vs. EmotionHUB con Agente
 
-| Aspecto | Caja de Sugerencias Tradicional | Chatbot Genérico | **NovaMind + Agente Autónomo** |
+| Aspecto | Caja de Sugerencias Tradicional | Chatbot Genérico | **EmotionHUB + Agente Autónomo** |
 |---------|--------------------------------|------------------|-------------------------------|
 | **Análisis de texto** | Manual por RRHH | Básico (keywords) |  NLP avanzado con Transformers |
 | **Detección de emociones** | No | No |  6 emociones con scores |
@@ -309,7 +309,7 @@ Bot: "Intenta respirar profundo y tomar descansos"
 ```
  Consejo de autoayuda sin valor organizacional
 
-**Agente Autónomo de NovaMind:**
+**Agente Autónomo de EmotionHUB:**
 ```
 Empleado: "Estoy estresado con la carga de trabajo"
 Agente: [Análisis NLP] → estrés=alto, categoría=sobrecarga
